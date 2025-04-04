@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
 
 export const LoginForm = () => {
   const { login, register, isLoading } = useAuth();
@@ -37,7 +39,9 @@ export const LoginForm = () => {
     }
 
     try {
-      await login(loginEmail, loginPassword, loginRole);
+      // We're not passing the role to the login function anymore
+      // It will be fetched from the profile table after login
+      await login(loginEmail, loginPassword);
       navigate("/dashboard");
     } catch (error) {
       setLoginFormError((error as Error).message || "Login failed");
@@ -65,7 +69,8 @@ export const LoginForm = () => {
 
     try {
       await register(registerEmail, registerPassword, registerName, registerRole);
-      navigate("/dashboard");
+      // We don't navigate here because we want users to verify their email first
+      // Instead, we'll show a success message in the register function
     } catch (error) {
       setRegisterFormError((error as Error).message || "Registration failed");
     }
@@ -101,9 +106,9 @@ export const LoginForm = () => {
           <TabsContent value="login">
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               {loginFormError && (
-                <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-                  {loginFormError}
-                </div>
+                <Alert variant="destructive">
+                  <AlertDescription>{loginFormError}</AlertDescription>
+                </Alert>
               )}
               
               <div className="space-y-2">
@@ -156,27 +161,22 @@ export const LoginForm = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : "Sign in"}
               </Button>
             </form>
-
-            <div className="mt-4 text-center text-sm text-gray-500">
-              <p>
-                Demo accounts:
-                <br />
-                Teacher: teacher@school.edu / password
-                <br />
-                Student: student@school.edu / password
-              </p>
-            </div>
           </TabsContent>
 
           <TabsContent value="register">
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               {registerFormError && (
-                <div className="bg-red-50 text-red-500 p-3 rounded-md text-sm">
-                  {registerFormError}
-                </div>
+                <Alert variant="destructive">
+                  <AlertDescription>{registerFormError}</AlertDescription>
+                </Alert>
               )}
               
               <div className="space-y-2">
@@ -234,7 +234,12 @@ export const LoginForm = () => {
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Registering..." : "Create account"}
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Registering...
+                  </>
+                ) : "Create account"}
               </Button>
             </form>
           </TabsContent>

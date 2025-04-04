@@ -2,77 +2,103 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Session, User } from "@supabase/supabase-js";
 
-type User = {
+type Profile = {
   id: string;
-  email: string;
   name: string;
   role: "teacher" | "student";
 };
 
 type AuthContextType = {
   user: User | null;
+  profile: Profile | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string, role: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (email: string, password: string, name: string, role: string) => Promise<void>;
-};
-
-// Mock data for demonstration
-const mockTeacher: User = {
-  id: "t1",
-  email: "teacher@school.edu",
-  name: "John Smith",
-  role: "teacher",
-};
-
-const mockStudent: User = {
-  id: "s1",
-  email: "student@school.edu",
-  name: "Jane Doe",
-  role: "student",
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for session on mount
-    const checkSession = async () => {
-      const storedUser = localStorage.getItem("eduUser");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          // Use setTimeout to avoid race conditions with auth state changes
+          setTimeout(async () => {
+            await fetchProfile(currentSession.user.id);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
       }
-      setIsLoading(false);
-    };
+    );
 
-    checkSession();
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchProfile(currentSession.user.id);
+      }
+      
+      setIsLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string, role: string) => {
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setProfile(data as Profile);
+      }
+    } catch (error: any) {
+      console.error('Error fetching profile:', error.message);
+      toast.error('Failed to load user profile');
+    }
+  };
+
+  const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      // In a real app, this would be a Supabase auth call
-      // For now, we'll simulate with mock data
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate network request
-      
-      if (email === "teacher@school.edu" && password === "password" && role === "teacher") {
-        setUser(mockTeacher);
-        localStorage.setItem("eduUser", JSON.stringify(mockTeacher));
-        toast.success("Logged in as Teacher");
-      } else if (email === "student@school.edu" && password === "password" && role === "student") {
-        setUser(mockStudent);
-        localStorage.setItem("eduUser", JSON.stringify(mockStudent));
-        toast.success("Logged in as Student");
-      } else {
-        throw new Error("Invalid credentials or role");
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      toast.error("Login failed: " + (error as Error).message);
+
+      toast.success('Logged in successfully');
+    } catch (error: any) {
+      toast.error('Login failed: ' + error.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -82,27 +108,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (email: string, password: string, name: string, role: string) => {
     try {
       setIsLoading(true);
-      // In a real app with Supabase, we would:
-      // 1. Create auth user
-      // 2. Create profile with role
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network request
       
-      if (role === "teacher") {
-        // Simulate successful teacher registration
-        const newTeacher = {
-          id: `t${Date.now()}`,
-          email,
-          name,
-          role: "teacher" as const
-        };
-        setUser(newTeacher);
-        localStorage.setItem("eduUser", JSON.stringify(newTeacher));
-        toast.success("Registered successfully as Teacher");
-      } else {
-        throw new Error("Only teacher registration is allowed at this time");
+      // Validate role
+      if (role !== 'teacher') {
+        throw new Error('Only teacher registration is allowed at this time');
       }
-    } catch (error) {
-      toast.error("Registration failed: " + (error as Error).message);
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            role
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Registration successful. Please check your email for verification.');
+    } catch (error: any) {
+      toast.error('Registration failed: ' + error.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -112,13 +141,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = async () => {
     try {
       setIsLoading(true);
-      // In a real app, this would be a Supabase auth call
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network request
-      localStorage.removeItem("eduUser");
-      setUser(null);
-      toast.info("Logged out successfully");
-    } catch (error) {
-      toast.error("Logout failed: " + (error as Error).message);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.info('Logged out successfully');
+    } catch (error: any) {
+      toast.error('Logout failed: ' + error.message);
       throw error;
     } finally {
       setIsLoading(false);
@@ -129,6 +160,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        profile,
         isAuthenticated: !!user,
         isLoading,
         login,
