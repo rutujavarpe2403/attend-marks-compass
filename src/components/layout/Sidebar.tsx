@@ -22,7 +22,7 @@ type SidebarProps = {
 };
 
 export const Sidebar = ({ isMobile, toggleSidebar }: SidebarProps) => {
-  const { user, logout } = useAuth();
+  const { profile, logout } = useAuth();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -80,7 +80,7 @@ export const Sidebar = ({ isMobile, toggleSidebar }: SidebarProps) => {
     },
   ];
 
-  const navItems = user?.role === "teacher" ? teacherNavItems : studentNavItems;
+  const navItems = profile?.role === "teacher" ? teacherNavItems : studentNavItems;
 
   return (
     <div
@@ -156,10 +156,10 @@ export const Sidebar = ({ isMobile, toggleSidebar }: SidebarProps) => {
             {!isCollapsed && (
               <div className="ml-3 overflow-hidden">
                 <p className="text-sm font-medium truncate">
-                  {user?.name || "User"}
+                  {profile?.name || "User"}
                 </p>
                 <p className="text-xs text-muted-foreground capitalize">
-                  {user?.role || "Role"}
+                  {profile?.role || "Role"}
                 </p>
               </div>
             )}

@@ -6,8 +6,10 @@ import { Session, User } from "@supabase/supabase-js";
 
 type Profile = {
   id: string;
-  name: string;
+  name: string | null;
   role: "teacher" | "student";
+  created_at?: string;
+  updated_at?: string;
 };
 
 type AuthContextType = {
@@ -65,6 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Using the raw query approach since the table might not be in the TypeScript definitions yet
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -76,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data) {
+        // Type assertion to ensure the data matches our Profile type
         setProfile(data as Profile);
       }
     } catch (error: any) {
