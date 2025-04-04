@@ -11,100 +11,96 @@ export type Database = {
     Tables: {
       attendance: {
         Row: {
-          batch: string
-          class_id: string
+          afternoon: boolean
           created_at: string | null
           date: string
+          evening: boolean
           id: string
-          status: string
+          morning: boolean
           student_id: string
           updated_at: string | null
         }
         Insert: {
-          batch: string
-          class_id: string
+          afternoon?: boolean
           created_at?: string | null
           date: string
+          evening?: boolean
           id?: string
-          status: string
+          morning?: boolean
           student_id: string
           updated_at?: string | null
         }
         Update: {
-          batch?: string
-          class_id?: string
+          afternoon?: boolean
           created_at?: string | null
           date?: string
+          evening?: boolean
           id?: string
-          status?: string
+          morning?: boolean
           student_id?: string
           updated_at?: string | null
         }
         Relationships: []
       }
-      classes: {
+      boards: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           name: string
-          teacher_id: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           name: string
-          teacher_id?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           name?: string
-          teacher_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "classes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      leave_requests: {
+      classes: {
         Row: {
-          created_at: string
-          date: string
+          created_at: string | null
           id: string
-          reason: string
-          status: string
-          student_id: string | null
+          name: string
         }
         Insert: {
-          created_at?: string
-          date: string
+          created_at?: string | null
           id?: string
-          reason: string
-          status: string
-          student_id?: string | null
+          name: string
         }
         Update: {
-          created_at?: string
-          date?: string
+          created_at?: string | null
           id?: string
-          reason?: string
-          status?: string
-          student_id?: string | null
+          name?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "leave_requests_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      exam_patterns: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          max_marks: number
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          max_marks?: number
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          max_marks?: number
+          name?: string
+        }
+        Relationships: []
       }
       marks: {
         Row: {
@@ -114,8 +110,9 @@ export type Database = {
           exam_type: string
           id: string
           marks: number
-          student_id: string | null
-          subject_id: string | null
+          student_id: string
+          subject_id: string
+          updated_at: string | null
         }
         Insert: {
           board: string
@@ -124,8 +121,9 @@ export type Database = {
           exam_type: string
           id?: string
           marks: number
-          student_id?: string | null
-          subject_id?: string | null
+          student_id: string
+          subject_id: string
+          updated_at?: string | null
         }
         Update: {
           board?: string
@@ -134,127 +132,71 @@ export type Database = {
           exam_type?: string
           id?: string
           marks?: number
-          student_id?: string | null
-          subject_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "marks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "marks_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          id: string
-          name: string
-          role: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          id: string
-          name: string
-          role: string
-        }
-        Update: {
-          avatar_url?: string | null
-          id?: string
-          name?: string
-          role?: string
+          student_id?: string
+          subject_id?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
       students: {
         Row: {
           batch: string
-          class_id: string
+          class_id: string | null
           created_at: string | null
           id: string
           name: string
-          register_number: string
-          updated_at: string | null
         }
         Insert: {
           batch: string
-          class_id: string
+          class_id?: string | null
           created_at?: string | null
           id?: string
           name: string
-          register_number: string
-          updated_at?: string | null
         }
         Update: {
           batch?: string
-          class_id?: string
+          class_id?: string | null
           created_at?: string | null
           id?: string
           name?: string
-          register_number?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      subjects: {
-        Row: {
-          class_id: string | null
-          created_at: string
-          id: string
-          name: string
-          teacher_id: string | null
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string
-          id?: string
-          name: string
-          teacher_id?: string | null
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string
-          id?: string
-          name?: string
-          teacher_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "subjects_class_id_fkey"
+            foreignKeyName: "students_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "subjects_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
+      }
+      subjects: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      upsert_attendance: {
-        Args: {
-          attendance_data: Json
-        }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
       [_ in never]: never
