@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export const LoginForm = () => {
   const { login, register, isLoading } = useAuth();
@@ -18,7 +19,6 @@ export const LoginForm = () => {
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
-  const [loginRole, setLoginRole] = useState("student");
   const [loginFormError, setLoginFormError] = useState("");
 
   // Registration state
@@ -39,12 +39,14 @@ export const LoginForm = () => {
     }
 
     try {
-      // We're not passing the role to the login function anymore
-      // It will be fetched from the profile table after login
+      console.log("Attempting login with:", { email: loginEmail, password: loginPassword });
       await login(loginEmail, loginPassword);
+      toast.success("Login successful");
       navigate("/dashboard");
-    } catch (error) {
-      setLoginFormError((error as Error).message || "Login failed");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setLoginFormError(error.message || "Invalid login credentials. Please check your email and password.");
+      toast.error("Login failed");
     }
   };
 
@@ -69,10 +71,15 @@ export const LoginForm = () => {
 
     try {
       await register(registerEmail, registerPassword, registerName, registerRole);
-      // We don't navigate here because we want users to verify their email first
-      // Instead, we'll show a success message in the register function
-    } catch (error) {
-      setRegisterFormError((error as Error).message || "Registration failed");
+      toast.success("Registration successful. Please check your email for verification.");
+      // Reset form after successful registration
+      setRegisterName("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setRegisterConfirmPassword("");
+    } catch (error: any) {
+      setRegisterFormError(error.message || "Registration failed");
+      toast.error("Registration failed");
     }
   };
 
@@ -139,25 +146,6 @@ export const LoginForm = () => {
                   onChange={(e) => setLoginPassword(e.target.value)}
                   disabled={isLoading}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <RadioGroup 
-                  defaultValue="student" 
-                  value={loginRole}
-                  onValueChange={setLoginRole}
-                  className="flex space-x-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="student" id="login-student" />
-                    <Label htmlFor="login-student">Student</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="teacher" id="login-teacher" />
-                    <Label htmlFor="login-teacher">Teacher</Label>
-                  </div>
-                </RadioGroup>
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>

@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
+        console.log("Auth state changed:", event, currentSession?.user?.id);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Current session:", currentSession?.user?.id);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -68,7 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Use a raw query with proper typing to avoid type errors
+      console.log("Fetching profile for user:", userId);
+      
+      // Using the raw query approach with explicit column selection
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, role, created_at, updated_at')
@@ -76,12 +80,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .single();
       
       if (error) {
+        console.error("Error fetching profile:", error);
         throw error;
       }
       
       if (data) {
-        // Use type assertion to match our Profile type
+        console.log("Profile data fetched:", data);
         setProfile(data as Profile);
+      } else {
+        console.log("No profile data found");
       }
     } catch (error: any) {
       console.error('Error fetching profile:', error.message);
@@ -92,17 +99,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Attempting login with email:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
+        console.error("Login error:", error);
         throw error;
       }
 
+      console.log("Login successful:", data);
       toast.success('Logged in successfully');
     } catch (error: any) {
+      console.error("Login failed:", error);
       toast.error('Login failed: ' + error.message);
       throw error;
     } finally {
@@ -113,10 +125,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (email: string, password: string, name: string, role: string) => {
     try {
       setIsLoading(true);
+      console.log("Attempting registration:", { email, name, role });
       
       // Validate role
-      if (role !== 'teacher') {
-        throw new Error('Only teacher registration is allowed at this time');
+      if (role !== 'teacher' && role !== 'student') {
+        throw new Error('Role must be either teacher or student');
       }
 
       const { data, error } = await supabase.auth.signUp({
@@ -131,11 +144,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
+        console.error("Registration error:", error);
         throw error;
       }
 
+      console.log("Registration successful:", data);
       toast.success('Registration successful. Please check your email for verification.');
     } catch (error: any) {
+      console.error("Registration failed:", error);
       toast.error('Registration failed: ' + error.message);
       throw error;
     } finally {
@@ -149,11 +165,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        console.error("Logout error:", error);
         throw error;
       }
       
+      console.log("Logout successful");
       toast.info('Logged out successfully');
     } catch (error: any) {
+      console.error("Logout failed:", error);
       toast.error('Logout failed: ' + error.message);
       throw error;
     } finally {
