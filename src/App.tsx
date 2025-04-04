@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Attendance from "./pages/Attendance";
@@ -34,7 +33,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => (
   <Routes>
-    <Route path="/" element={<Index />} />
+    {/* Redirect from root to login page */}
+    <Route path="/" element={<Navigate to="/login" replace />} />
     <Route path="/login" element={<Login />} />
     
     {/* Protected Routes */}

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 
+// Define our own Profile type instead of importing from types.ts
 type Profile = {
   id: string;
   name: string | null;
@@ -67,10 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      // Using the raw query approach since the table might not be in the TypeScript definitions yet
+      // Use a raw query with proper typing to avoid type errors
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, role, created_at, updated_at')
         .eq('id', userId)
         .single();
       
@@ -79,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (data) {
-        // Type assertion to ensure the data matches our Profile type
+        // Use type assertion to match our Profile type
         setProfile(data as Profile);
       }
     } catch (error: any) {
