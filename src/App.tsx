@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Attendance from "./pages/Attendance";
 import Marks from "./pages/Marks";
 import Reports from "./pages/Reports";
+import Students from "./pages/Students";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -50,33 +51,12 @@ const AppRoutes = () => (
       <Route path="/attendance" element={<Attendance />} />
       <Route path="/marks" element={<Marks />} />
       <Route path="/reports" element={<Reports />} />
-      <Route path="/students" element={<EmptyStudentsPage />} />
+      <Route path="/students" element={<Students />} />
     </Route>
     
     {/* Catch-all route */}
     <Route path="*" element={<NotFound />} />
   </Routes>
-);
-
-// Placeholder for Students page - to be implemented
-const EmptyStudentsPage = () => (
-  <div className="space-y-6">
-    <div>
-      <h2 className="text-2xl font-bold tracking-tight">Students</h2>
-      <p className="text-muted-foreground">
-        Manage your students and their information
-      </p>
-    </div>
-
-    <div className="flex h-[50vh] items-center justify-center rounded-md border border-dashed">
-      <div className="text-center">
-        <h3 className="text-lg font-medium">Students Management</h3>
-        <p className="text-sm text-muted-foreground">
-          This feature is coming soon.
-        </p>
-      </div>
-    </div>
-  </div>
 );
 
 const App = () => (
