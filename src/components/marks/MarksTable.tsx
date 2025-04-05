@@ -164,7 +164,7 @@ export const MarksTable = () => {
                       <SelectValue placeholder="All Classes" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Classes</SelectItem>
+                      <SelectItem value="all">All Classes</SelectItem>
                       {classes.map((cls) => (
                         <SelectItem key={cls} value={cls}>
                           Class {cls}
@@ -181,7 +181,7 @@ export const MarksTable = () => {
                       <SelectValue placeholder="All Boards" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Boards</SelectItem>
+                      <SelectItem value="all">All Boards</SelectItem>
                       {boards.map((board) => (
                         <SelectItem key={board} value={board}>
                           {board}
@@ -198,7 +198,7 @@ export const MarksTable = () => {
                       <SelectValue placeholder="All Exams" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Exams</SelectItem>
+                      <SelectItem value="all">All Exams</SelectItem>
                       {examTypes.map((type) => (
                         <SelectItem key={type} value={type}>
                           {type}
@@ -215,7 +215,7 @@ export const MarksTable = () => {
                       <SelectValue placeholder="All Subjects" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Subjects</SelectItem>
+                      <SelectItem value="all">All Subjects</SelectItem>
                       {subjects.map((subject) => (
                         <SelectItem key={subject} value={subject}>
                           {subject}
