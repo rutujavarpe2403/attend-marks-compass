@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          afternoon: boolean | null
+          created_at: string | null
+          date: string
+          evening: boolean | null
+          id: string
+          morning: boolean | null
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          afternoon?: boolean | null
+          created_at?: string | null
+          date: string
+          evening?: boolean | null
+          id?: string
+          morning?: boolean | null
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          afternoon?: boolean | null
+          created_at?: string | null
+          date?: string
+          evening?: boolean | null
+          id?: string
+          morning?: boolean | null
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      marks: {
+        Row: {
+          board: string
+          class_id: string
+          created_at: string | null
+          exam_type: string
+          id: string
+          marks: number
+          student_id: string
+          subject_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          board: string
+          class_id: string
+          created_at?: string | null
+          exam_type: string
+          id?: string
+          marks: number
+          student_id: string
+          subject_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          board?: string
+          class_id?: string
+          created_at?: string | null
+          exam_type?: string
+          id?: string
+          marks?: number
+          student_id?: string
+          subject_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -30,6 +99,33 @@ export type Database = {
           name?: string | null
           role?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          batch: string
+          board: string
+          class_id: string | null
+          created_at: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          batch: string
+          board: string
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          batch?: string
+          board?: string
+          class_id?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
         }
         Relationships: []
       }
