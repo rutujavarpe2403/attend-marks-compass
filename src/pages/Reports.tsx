@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, FileSpreadsheet, FileText, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { EmptyState } from "@/components/common/EmptyState";
 
 const Reports = () => {
   const [reportType, setReportType] = useState("attendance");
@@ -150,35 +149,6 @@ const Reports = () => {
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Report Templates</CardTitle>
-          <CardDescription>
-            Pre-designed report templates for various purposes
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {["Student Performance Report", "Class Attendance Summary", "Exam Analysis Report"].map((template) => (
-              <Card key={template} className="bg-muted/50">
-                <CardContent className="pt-6">
-                  <div className="flex flex-col items-center text-center">
-                    <FileText className="h-8 w-8 text-primary mb-2" />
-                    <h3 className="text-sm font-medium">{template}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Comprehensive {template.toLowerCase()}
-                    </p>
-                    <Button size="sm" variant="outline" className="mt-4">
-                      Use Template
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

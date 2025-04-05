@@ -109,14 +109,56 @@ export const MarksCsvUpload = () => {
         subject_id: selectedSubject,
       }));
       
-      // Upsert the marks records
-      const { error } = await supabase
-        .from("marks")
-        .upsert(marksRecords, { onConflict: 'student_id,class_id,board,exam_type,subject_id' });
-        
-      if (error) throw error;
+      // Insert marks records one by one instead of using upsert with onConflict
+      let successCount = 0;
+      let errorCount = 0;
       
-      toast.success(`Successfully uploaded ${records.length} marks records`);
+      for (const record of marksRecords) {
+        // Check if a record with the same combination already exists
+        const { data: existingRecord, error: checkError } = await supabase
+          .from("marks")
+          .select("id")
+          .eq("student_id", record.student_id)
+          .eq("class_id", record.class_id)
+          .eq("board", record.board)
+          .eq("exam_type", record.exam_type)
+          .eq("subject_id", record.subject_id)
+          .single();
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error("Error checking existing record:", checkError);
+          errorCount++;
+          continue;
+        }
+        
+        let result;
+        
+        if (existingRecord) {
+          // Update existing record
+          result = await supabase
+            .from("marks")
+            .update({ marks: record.marks })
+            .eq("id", existingRecord.id);
+        } else {
+          // Insert new record
+          result = await supabase
+            .from("marks")
+            .insert(record);
+        }
+        
+        if (result.error) {
+          console.error("Error saving mark:", result.error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
+      }
+      
+      if (errorCount > 0) {
+        toast.warning(`Uploaded ${successCount} records with ${errorCount} errors`);
+      } else {
+        toast.success(`Successfully uploaded ${successCount} marks records`);
+      }
       
       // Reset the form
       setFile(null);

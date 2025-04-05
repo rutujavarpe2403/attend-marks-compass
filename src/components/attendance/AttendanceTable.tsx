@@ -1,7 +1,7 @@
 
-import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { AttendanceForm } from "./AttendanceForm";
+import { StudentAttendanceView } from "./StudentAttendanceView";
 
 export const AttendanceTable = () => {
   const { profile } = useAuth();
@@ -16,7 +16,7 @@ export const AttendanceTable = () => {
         </p>
       </div>
 
-      <AttendanceForm />
+      {isTeacher ? <AttendanceForm /> : <StudentAttendanceView />}
     </div>
   );
 };
