@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { DataTable } from "../common/DataTable";
@@ -22,7 +23,11 @@ interface Column {
   cell?: (props: { row: { original: Student } }) => React.ReactNode;
 }
 
-export const StudentTable = () => {
+interface StudentTableProps {
+  onAddClick?: () => void;
+}
+
+export const StudentTable = ({ onAddClick }: StudentTableProps) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmails, setUserEmails] = useState<Record<string, string>>({});
@@ -74,22 +79,23 @@ export const StudentTable = () => {
     try {
       if (userIds.length === 0) return {};
       
-      // Fix for the TypeScript error - handle the case explicitly
-      const { data: users, error } = await supabase.auth.admin.listUsers({
+      // We need to handle this more safely
+      const response = await supabase.auth.admin.listUsers({
         perPage: 100,
       });
       
-      if (error) throw error;
-      
-      // Safety check to ensure users exists and has the expected structure
-      if (!users || !users.users) {
-        console.error("Unexpected response structure from supabase.auth.admin.listUsers");
+      // Early return if there's an error
+      if (response.error) {
+        console.error("Error fetching users:", response.error);
         return {};
       }
       
+      // Safely access the users property
+      const users = response.data?.users || [];
+      
       // Create a map of userId to email
       const userEmails: Record<string, string> = {};
-      users.users.forEach((user) => {
+      users.forEach((user) => {
         if (user && user.id) {
           userEmails[user.id] = user.email || '';
         }
@@ -106,7 +112,7 @@ export const StudentTable = () => {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Students</h2>
-        <Button>
+        <Button onClick={onAddClick}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Student
         </Button>
