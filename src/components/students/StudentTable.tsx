@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -61,30 +60,45 @@ export const StudentTable = ({ onAddClick }: { onAddClick: () => void }) => {
 
       if (studentsError) throw studentsError;
 
-      // Fetch emails for all users
-      const userIds = profiles.map(profile => profile.id);
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
-        perPage: userIds.length
-      });
-
-      if (usersError) {
-        console.error("Error fetching users:", usersError);
-      }
-
       // Combine the data
       const combined = profiles.map(profile => {
-        const studentDetails = studentRecords?.find(s => s.id === profile.id) || {};
-        const userEmail = users?.users.find(u => u.id === profile.id)?.email || "";
+        // Safely find the matching student record or provide defaults
+        const studentDetails = studentRecords?.find(s => s.id === profile.id) || {
+          class_id: "",
+          batch: "",
+          board: ""
+        };
 
         return {
           id: profile.id,
           name: profile.name || "Unknown",
-          email: userEmail,
+          email: "", // We'll set this later if we can get it
           class: studentDetails.class_id || "",
           batch: studentDetails.batch || "",
           board: studentDetails.board || "",
         };
       });
+
+      // Try to get emails if possible (this may not work without admin access)
+      try {
+        const userIds = profiles.map(profile => profile.id);
+        const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
+          perPage: userIds.length
+        });
+
+        if (!usersError && users) {
+          // Update the combined data with emails
+          combined.forEach(student => {
+            const user = users.users.find(u => u.id === student.id);
+            if (user) {
+              student.email = user.email || "";
+            }
+          });
+        }
+      } catch (emailError) {
+        console.log("Could not fetch user emails:", emailError);
+        // We continue without emails - it's not critical
+      }
 
       setStudents(combined);
     } catch (error: any) {
