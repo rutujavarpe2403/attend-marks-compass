@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth";
 import { cn } from "@/lib/utils";
 import { 
   BookOpen, 
