@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -82,16 +83,17 @@ export const StudentTable = ({ onAddClick }: { onAddClick: () => void }) => {
       // Try to get emails if possible (this may not work without admin access)
       try {
         const userIds = profiles.map(profile => profile.id);
-        const { data: users, error: usersError } = await supabase.auth.admin.listUsers({
+        // Cast the result type more explicitly to avoid 'never' type issues
+        const { data, error: usersError } = await supabase.auth.admin.listUsers({
           perPage: userIds.length
         });
 
-        if (!usersError && users) {
+        if (!usersError && data && data.users) {
           // Update the combined data with emails
           combined.forEach(student => {
-            const user = users.users.find(u => u.id === student.id);
-            if (user) {
-              student.email = user.email || "";
+            const user = data.users.find(u => u.id === student.id);
+            if (user && user.email) {
+              student.email = user.email;
             }
           });
         }
