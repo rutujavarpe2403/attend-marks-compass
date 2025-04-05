@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload } from "lucide-react";
+import { MarksCSVExample } from "./MarksCSVExample";
 import {
   Card,
   CardContent,
@@ -26,6 +27,7 @@ export const MarksCsvUpload = () => {
   const [selectedSubject, setSelectedSubject] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showSample, setShowSample] = useState(false);
 
   const classes = Array.from({ length: 12 }, (_, i) => `${i + 1}`);
   const boards = ["CBSE", "ICSE", "State Board"];
@@ -214,7 +216,16 @@ export const MarksCsvUpload = () => {
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
             />
+            <button 
+              type="button" 
+              className="text-sm text-primary mt-1 underline"
+              onClick={() => setShowSample(!showSample)}
+            >
+              {showSample ? "Hide sample format" : "View sample CSV format"}
+            </button>
           </div>
+          
+          {showSample && <MarksCSVExample />}
           
           <Button 
             onClick={handleUpload} 
