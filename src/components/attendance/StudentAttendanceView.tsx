@@ -1,24 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/common/EmptyState";
 
 type AttendanceRecord = {
@@ -31,75 +20,107 @@ type AttendanceRecord = {
 
 export const StudentAttendanceView = () => {
   const { user } = useAuth();
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [timeRange, setTimeRange] = useState<"weekly" | "monthly" | "all">("weekly");
 
   useEffect(() => {
-    if (user?.id && selectedDate) {
-      fetchAttendanceForDate();
+    if (user?.id) {
+      fetchAttendanceRecords();
     }
-  }, [user?.id, selectedDate]);
+  }, [user?.id, timeRange]);
 
-  const fetchAttendanceForDate = async () => {
+  const fetchAttendanceRecords = async () => {
     if (!user?.id) return;
     
     try {
       setIsLoading(true);
-      const formattedDate = format(selectedDate, "yyyy-MM-dd");
       
-      const { data, error } = await supabase
+      // Calculate date range based on selected time range
+      let fromDate;
+      const today = new Date();
+      
+      if (timeRange === "weekly") {
+        // Last 7 days
+        fromDate = new Date();
+        fromDate.setDate(today.getDate() - 7);
+      } else if (timeRange === "monthly") {
+        // Last 30 days
+        fromDate = new Date();
+        fromDate.setDate(today.getDate() - 30);
+      }
+      
+      // Build query
+      let query = supabase
         .from("attendance")
         .select("*")
         .eq("student_id", user.id)
-        .eq("date", formattedDate)
-        .single();
+        .order("date", { ascending: false });
+      
+      // Add date filter if applicable
+      if (fromDate) {
+        query = query.gte("date", format(fromDate, "yyyy-MM-dd"));
+      }
+      
+      const { data, error } = await query;
         
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error("Error fetching attendance:", error);
         throw error;
       }
       
-      setAttendance(data || null);
+      setAttendanceRecords(data || []);
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      console.error("Error fetching attendance records:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Calculate attendance statistics
+  const totalDays = attendanceRecords.length;
+  let presentDays = 0;
+  let absentDays = 0;
+  
+  attendanceRecords.forEach(record => {
+    const sessionsPresent = [record.morning, record.afternoon, record.evening].filter(Boolean).length;
+    if (sessionsPresent >= 2) { // Present if attended at least 2 sessions
+      presentDays++;
+    } else {
+      absentDays++;
+    }
+  });
+  
+  const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>View My Attendance</CardTitle>
+          <CardTitle className="flex justify-between items-center">
+            <span>My Attendance Records</span>
+            <Tabs value={timeRange} onValueChange={(value) => setTimeRange(value as "weekly" | "monthly" | "all")} className="w-full max-w-xs">
+              <TabsList className="w-full">
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+                <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                <TabsTrigger value="all">All Time</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium mb-1">Select Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !selectedDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={(date) => date && setSelectedDate(date)}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="p-4 border rounded-md flex flex-col items-center justify-center">
+              <span className="text-sm text-muted-foreground mb-1">Attendance Rate</span>
+              <span className="text-2xl font-bold">{attendanceRate}%</span>
+            </div>
+            <div className="p-4 border rounded-md flex flex-col items-center justify-center">
+              <span className="text-sm text-muted-foreground mb-1">Days Present</span>
+              <span className="text-2xl font-bold">{presentDays}</span>
+            </div>
+            <div className="p-4 border rounded-md flex flex-col items-center justify-center">
+              <span className="text-sm text-muted-foreground mb-1">Days Absent</span>
+              <span className="text-2xl font-bold">{absentDays}</span>
             </div>
           </div>
           
@@ -107,38 +128,51 @@ export const StudentAttendanceView = () => {
             <div className="flex justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
             </div>
-          ) : attendance ? (
-            <div className="mt-6">
-              <h3 className="font-medium mb-4">Attendance Status for {format(selectedDate, "PPP")}</h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-4 border rounded-md flex flex-col items-center justify-center">
-                  <span className="text-sm text-muted-foreground mb-2">Morning</span>
-                  <Badge variant={attendance.morning ? "success" : "destructive"}>
-                    {attendance.morning ? "Present" : "Absent"}
-                  </Badge>
-                </div>
-                <div className="p-4 border rounded-md flex flex-col items-center justify-center">
-                  <span className="text-sm text-muted-foreground mb-2">Afternoon</span>
-                  <Badge variant={attendance.afternoon ? "success" : "destructive"}>
-                    {attendance.afternoon ? "Present" : "Absent"}
-                  </Badge>
-                </div>
-                <div className="p-4 border rounded-md flex flex-col items-center justify-center">
-                  <span className="text-sm text-muted-foreground mb-2">Evening</span>
-                  <Badge variant={attendance.evening ? "success" : "destructive"}>
-                    {attendance.evening ? "Present" : "Absent"}
-                  </Badge>
-                </div>
-              </div>
+          ) : attendanceRecords.length > 0 ? (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Morning</TableHead>
+                    <TableHead>Afternoon</TableHead>
+                    <TableHead>Evening</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendanceRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{format(new Date(record.date), "PPP")}</TableCell>
+                      <TableCell>
+                        <AttendanceStatus present={record.morning} />
+                      </TableCell>
+                      <TableCell>
+                        <AttendanceStatus present={record.afternoon} />
+                      </TableCell>
+                      <TableCell>
+                        <AttendanceStatus present={record.evening} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
           ) : (
             <EmptyState
-              title="No attendance record"
-              description={`No attendance record found for ${format(selectedDate, "PPP")}`}
+              title="No attendance records"
+              description="No attendance has been recorded for the selected time period"
             />
           )}
         </CardContent>
       </Card>
     </div>
+  );
+};
+
+const AttendanceStatus = ({ present }: { present: boolean }) => {
+  return (
+    <Badge variant={present ? "success" : "destructive"}>
+      {present ? "Present" : "Absent"}
+    </Badge>
   );
 };

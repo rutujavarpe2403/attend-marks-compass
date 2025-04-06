@@ -1,42 +1,198 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatsCard } from "@/components/common/StatsCard";
 import { DataTable } from "@/components/common/DataTable";
-import { BookOpen, CalendarDays, CheckCircle, Clock, FileText, Users, XCircle } from "lucide-react";
+import { BookOpen, CalendarDays, CheckCircle, Clock, FileText, Loader2, Users, XCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+
+interface DashboardStats {
+  totalStudents: number;
+  attendanceRate: number;
+  averageGrade: number;
+  pendingReports: number;
+}
+
+interface AttendanceRecord {
+  class: string;
+  date: string;
+  present: number;
+  absent: number;
+  rate: number;
+}
+
+interface MarkRecord {
+  subject: string;
+  class: string;
+  examType: string;
+  avgScore: string;
+  status: "Completed" | "Pending";
+}
 
 export const TeacherDashboard = () => {
-  // In a real app, these would come from API calls
-  const stats = [
-    {
-      title: "Total Students",
-      value: "240",
-      icon: <Users className="h-4 w-4 text-muted-foreground" />,
-      trend: "+5%",
-      trendDirection: "up",
-    },
-    {
-      title: "Attendance Rate",
-      value: "92%",
-      icon: <CheckCircle className="h-4 w-4 text-muted-foreground" />,
-      trend: "+2%",
-      trendDirection: "up",
-    },
-    {
-      title: "Average Grade",
-      value: "B+",
-      icon: <BookOpen className="h-4 w-4 text-muted-foreground" />,
-      trend: "+3%",
-      trendDirection: "up",
-    },
-    {
-      title: "Pending Reports",
-      value: "5",
-      icon: <FileText className="h-4 w-4 text-muted-foreground" />,
-      trend: "-2",
-      trendDirection: "down",
-    },
-  ];
+  const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStudents: 0,
+    attendanceRate: 0,
+    averageGrade: 0,
+    pendingReports: 5, // Default value for demo
+  });
+  const [recentAttendanceData, setRecentAttendanceData] = useState<AttendanceRecord[]>([]);
+  const [recentMarksData, setRecentMarksData] = useState<MarkRecord[]>([]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch total student count
+      const { data: students, error: studentError } = await supabase
+        .from('students')
+        .select('id');
+      
+      if (studentError) throw studentError;
+      
+      // Fetch attendance data for attendance rate
+      const { data: attendanceData, error: attendanceError } = await supabase
+        .from('attendance')
+        .select('*');
+      
+      if (attendanceError) throw attendanceError;
+      
+      // Fetch marks data for average grade
+      const { data: marksData, error: marksError } = await supabase
+        .from('marks')
+        .select('*');
+      
+      if (marksError) throw marksError;
+      
+      // Calculate dashboard stats
+      const totalStudents = students?.length || 0;
+      
+      // Calculate attendance rate
+      let totalAttendanceRecords = 0;
+      let presentRecords = 0;
+      
+      if (attendanceData && attendanceData.length > 0) {
+        totalAttendanceRecords = attendanceData.length * 3; // morning, afternoon, evening slots
+        
+        attendanceData.forEach(record => {
+          if (record.morning) presentRecords++;
+          if (record.afternoon) presentRecords++;
+          if (record.evening) presentRecords++;
+        });
+      }
+      
+      const attendanceRate = totalAttendanceRecords > 0 
+        ? Math.round((presentRecords / totalAttendanceRecords) * 100) 
+        : 0;
+      
+      // Calculate average grade
+      const averageGrade = marksData && marksData.length > 0 
+        ? Math.round(marksData.reduce((sum, mark) => sum + mark.marks, 0) / marksData.length) 
+        : 0;
+      
+      setStats({
+        totalStudents,
+        attendanceRate,
+        averageGrade,
+        pendingReports: 5 // Static demo value
+      });
+      
+      // Process recent attendance data
+      if (attendanceData && attendanceData.length > 0) {
+        const attendanceByDate = attendanceData.reduce((acc, record) => {
+          const date = record.date;
+          const classId = "Class"; // In a real app, we'd join with student data to get class
+          
+          if (!acc[date]) {
+            acc[date] = {};
+          }
+          
+          if (!acc[date][classId]) {
+            acc[date][classId] = {
+              present: 0,
+              absent: 0,
+              total: 0
+            };
+          }
+          
+          // Count morning, afternoon, evening separately
+          acc[date][classId].total += 3; // 3 sessions per day
+          if (record.morning) acc[date][classId].present += 1;
+          else acc[date][classId].absent += 1;
+          
+          if (record.afternoon) acc[date][classId].present += 1;
+          else acc[date][classId].absent += 1;
+          
+          if (record.evening) acc[date][classId].present += 1;
+          else acc[date][classId].absent += 1;
+          
+          return acc;
+        }, {} as Record<string, Record<string, {present: number, absent: number, total: number}>>);
+        
+        // Convert to array format for table
+        const recentAttendance: AttendanceRecord[] = [];
+        
+        Object.entries(attendanceByDate).slice(0, 5).forEach(([date, classes]) => {
+          Object.entries(classes).forEach(([classId, data]) => {
+            recentAttendance.push({
+              class: classId,
+              date,
+              present: data.present,
+              absent: data.absent,
+              rate: Math.round((data.present / data.total) * 100)
+            });
+          });
+        });
+        
+        setRecentAttendanceData(recentAttendance.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      }
+      
+      // Process recent marks data
+      if (marksData && marksData.length > 0) {
+        const marksBySubject = marksData.reduce((acc, mark) => {
+          const key = `${mark.subject_id}-${mark.class_id}-${mark.exam_type}`;
+          
+          if (!acc[key]) {
+            acc[key] = {
+              subject: mark.subject_id,
+              class: mark.class_id,
+              examType: mark.exam_type,
+              total: 0,
+              count: 0,
+              status: "Completed" as const
+            };
+          }
+          
+          acc[key].total += mark.marks;
+          acc[key].count += 1;
+          
+          return acc;
+        }, {} as Record<string, {subject: string, class: string, examType: string, total: number, count: number, status: "Completed" | "Pending"}>);
+        
+        // Convert to array format for table
+        const recentMarks = Object.values(marksBySubject).map(item => ({
+          subject: item.subject,
+          class: item.class,
+          examType: item.examType,
+          avgScore: `${Math.round(item.total / item.count)}/100`,
+          status: item.status
+        }));
+        
+        setRecentMarksData(recentMarks.slice(0, 5));
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const recentAttendanceColumns = [
     { header: "Class", accessorKey: "class" },
@@ -79,22 +235,6 @@ export const TeacherDashboard = () => {
     },
   ];
 
-  const recentAttendanceData = [
-    { class: "10A", date: "2025-04-04", present: 28, absent: 2, rate: 93 },
-    { class: "9B", date: "2025-04-04", present: 25, absent: 5, rate: 83 },
-    { class: "11C", date: "2025-04-03", present: 30, absent: 0, rate: 100 },
-    { class: "12A", date: "2025-04-03", present: 24, absent: 6, rate: 80 },
-    { class: "10B", date: "2025-04-02", present: 27, absent: 3, rate: 90 },
-  ];
-
-  const recentMarksData = [
-    { subject: "Mathematics", class: "10A", examType: "Midterm", avgScore: "85/100", status: "Completed" },
-    { subject: "Physics", class: "11C", examType: "Assignment", avgScore: "74/100", status: "Completed" },
-    { subject: "English", class: "12A", examType: "Quiz", avgScore: "90/100", status: "Completed" },
-    { subject: "Chemistry", class: "10B", examType: "Final", avgScore: "-", status: "Pending" },
-    { subject: "Biology", class: "9B", examType: "Project", avgScore: "-", status: "Pending" },
-  ];
-
   const upcomingTasks = [
     { id: 1, title: "Grade 10A Chemistry Final", due: "Tomorrow" },
     { id: 2, title: "Submit 11C Progress Reports", due: "2 days" },
@@ -108,19 +248,45 @@ export const TeacherDashboard = () => {
     { id: 3, student: "Mike Wilson", class: "9B", days: 4, status: "Meeting Scheduled" },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat, i) => (
-          <StatsCard
-            key={i}
-            title={stat.title}
-            value={stat.value}
-            icon={stat.icon}
-            trend={stat.trend}
-            trendDirection={stat.trendDirection as "up" | "down" | "neutral"}
-          />
-        ))}
+        <StatsCard
+          title="Total Students"
+          value={String(stats.totalStudents)}
+          icon={<Users className="h-4 w-4 text-muted-foreground" />}
+          trend="+5%"
+          trendDirection="up"
+        />
+        <StatsCard
+          title="Attendance Rate"
+          value={`${stats.attendanceRate}%`}
+          icon={<CheckCircle className="h-4 w-4 text-muted-foreground" />}
+          trend="+2%"
+          trendDirection="up"
+        />
+        <StatsCard
+          title="Average Grade"
+          value={stats.averageGrade > 0 ? `${stats.averageGrade}/100` : "N/A"}
+          icon={<BookOpen className="h-4 w-4 text-muted-foreground" />}
+          trend="+3%"
+          trendDirection="up"
+        />
+        <StatsCard
+          title="Pending Reports"
+          value={String(stats.pendingReports)}
+          icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+          trend="-2"
+          trendDirection="down"
+        />
       </div>
 
       <Tabs defaultValue="attendance" className="space-y-4">
@@ -146,7 +312,13 @@ export const TeacherDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DataTable columns={recentAttendanceColumns} data={recentAttendanceData} />
+              {recentAttendanceData.length > 0 ? (
+                <DataTable columns={recentAttendanceColumns} data={recentAttendanceData} />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recent attendance records found</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -160,7 +332,13 @@ export const TeacherDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <DataTable columns={recentMarksColumns} data={recentMarksData} />
+              {recentMarksData.length > 0 ? (
+                <DataTable columns={recentMarksColumns} data={recentMarksData} />
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">No recent mark entries found</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { DataTable } from "../common/DataTable";
 import { StudentActions } from "./StudentActions";
 import { Button } from "../ui/button";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, UploadCloud } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
+import { toast } from "sonner";
+import { StudentCsvUpload } from "./StudentCsvUpload";
 
 interface Student {
   id: string;
@@ -31,6 +33,7 @@ export const StudentTable = ({ onAddClick }: StudentTableProps) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [userEmails, setUserEmails] = useState<Record<string, string>>({});
+  const [showCsvUpload, setShowCsvUpload] = useState(false);
 
   const columns: Column[] = [
     { header: "Name", accessorKey: "name" },
@@ -41,7 +44,7 @@ export const StudentTable = ({ onAddClick }: StudentTableProps) => {
     {
       header: "Actions",
       accessorKey: "actions",
-      cell: ({ row }) => <StudentActions student={row.original} />,
+      cell: ({ row }) => <StudentActions student={row.original} onStudentDeleted={fetchStudents} />,
     },
   ];
 
@@ -70,6 +73,7 @@ export const StudentTable = ({ onAddClick }: StudentTableProps) => {
       }
     } catch (error: any) {
       console.error("Error fetching students:", error);
+      toast.error("Failed to fetch students");
     } finally {
       setLoading(false);
     }
@@ -108,24 +112,47 @@ export const StudentTable = ({ onAddClick }: StudentTableProps) => {
     }
   };
 
+  const handleCsvUploadSuccess = () => {
+    setShowCsvUpload(false);
+    fetchStudents();
+    toast.success("Students imported successfully");
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold tracking-tight">Students</h2>
-        <Button onClick={onAddClick}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add Student
-        </Button>
-      </div>
-      {loading ? (
-        <div>Loading students...</div>
-      ) : students.length > 0 ? (
-        <DataTable columns={columns} data={students} searchable={true} />
-      ) : (
-        <EmptyState
-          title="No students found"
-          description="Add new students to get started."
+      {showCsvUpload ? (
+        <StudentCsvUpload 
+          onCancel={() => setShowCsvUpload(false)}
+          onSuccess={handleCsvUploadSuccess}
         />
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold tracking-tight">Students</h2>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowCsvUpload(true)} variant="outline">
+                <UploadCloud className="mr-2 h-4 w-4" />
+                Import CSV
+              </Button>
+              <Button onClick={onAddClick}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Student
+              </Button>
+            </div>
+          </div>
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            </div>
+          ) : students.length > 0 ? (
+            <DataTable columns={columns} data={students} searchable={true} />
+          ) : (
+            <EmptyState
+              title="No students found"
+              description="Add new students to get started."
+            />
+          )}
+        </>
       )}
     </div>
   );
