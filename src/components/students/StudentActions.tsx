@@ -9,56 +9,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Pencil, Trash, Eye } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { StudentView } from "./StudentView";
 import { StudentEdit } from "./StudentEdit";
+import { StudentDeleteDialog } from "./dialogs/StudentDeleteDialog";
+import { StudentActionProps } from "./types/actionTypes";
 
-interface Student {
-  id: string;
-  name: string;
-  email?: string;
-  batch: string;
-  class_id: string | null;
-  board: string;
-  created_at: string | null;
-}
-
-interface StudentActionsProps {
-  student: Student;
-  onStudentDeleted?: () => void;
-}
-
-export const StudentActions = ({ student, onStudentDeleted }: StudentActionsProps) => {
+export const StudentActions = ({ student, onStudentDeleted }: StudentActionProps) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showViewDialog, setShowViewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      const { error } = await supabase
-        .from("students")
-        .delete()
-        .eq("id", student.id);
-      
-      if (error) {
-        toast.error("Failed to delete student");
-        throw error;
-      }
-
-      toast.success("Student deleted successfully");
-      onStudentDeleted?.();
-    } catch (error) {
-      console.error("Error deleting student:", error);
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
 
   const handleEditSuccess = () => {
     setShowEditDialog(false);
@@ -94,22 +55,15 @@ export const StudentActions = ({ student, onStudentDeleted }: StudentActionsProp
       </DropdownMenu>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the student account for {student.name}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction disabled={isDeleting} onClick={handleDelete}>
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {showDeleteDialog && (
+        <StudentDeleteDialog
+          studentId={student.id}
+          studentName={student.name}
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onSuccess={onStudentDeleted}
+        />
+      )}
 
       {/* View Student Dialog */}
       {showViewDialog && (
