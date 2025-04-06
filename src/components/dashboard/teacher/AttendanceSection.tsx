@@ -2,6 +2,7 @@
 import { DataTable } from "@/components/common/DataTable";
 
 export interface AttendanceRecord {
+  studentName?: string;
   class: string;
   date: string;
   present: number;
@@ -15,6 +16,11 @@ interface AttendanceSectionProps {
 
 export const AttendanceSection = ({ recentAttendanceData }: AttendanceSectionProps) => {
   const recentAttendanceColumns = [
+    { 
+      header: "Name", 
+      accessorKey: "studentName",
+      cell: ({ row }: { row: any }) => row.original.studentName || "N/A"
+    },
     { header: "Class", accessorKey: "class" },
     { header: "Date", accessorKey: "date" },
     { header: "Present", accessorKey: "present" },

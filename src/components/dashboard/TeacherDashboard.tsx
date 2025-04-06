@@ -7,8 +7,7 @@ import { fetchDashboardData, DashboardStats } from "./teacher/DashboardData";
 import { StatsSection } from "./teacher/StatsSection";
 import { AttendanceSection, AttendanceRecord } from "./teacher/AttendanceSection";
 import { MarksSection, MarkRecord } from "./teacher/MarksSection";
-import { TasksSection } from "./teacher/TasksSection";
-import { AbsenceAlertsSection } from "./teacher/AbsenceAlertsSection";
+import { AttendanceChart } from "./teacher/AttendanceChart";
 
 export const TeacherDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,6 +19,11 @@ export const TeacherDashboard = () => {
   });
   const [recentAttendanceData, setRecentAttendanceData] = useState<AttendanceRecord[]>([]);
   const [recentMarksData, setRecentMarksData] = useState<MarkRecord[]>([]);
+  const [attendanceBySlot, setAttendanceBySlot] = useState({
+    morning: { present: 0, absent: 0 },
+    afternoon: { present: 0, absent: 0 },
+    evening: { present: 0, absent: 0 },
+  });
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -29,6 +33,7 @@ export const TeacherDashboard = () => {
         setStats(data.stats);
         setRecentAttendanceData(data.recentAttendanceData);
         setRecentMarksData(data.recentMarksData);
+        setAttendanceBySlot(data.attendanceBySlot);
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -38,19 +43,6 @@ export const TeacherDashboard = () => {
     
     loadDashboardData();
   }, []);
-
-  const upcomingTasks = [
-    { id: 1, title: "Grade 10A Chemistry Final", due: "Tomorrow" },
-    { id: 2, title: "Submit 11C Progress Reports", due: "2 days" },
-    { id: 3, title: "Parent-Teacher Meeting", due: "Next Week" },
-    { id: 4, title: "Prepare Quiz for 9B", due: "Next Week" },
-  ];
-
-  const absenceAlerts = [
-    { id: 1, student: "Alex Chen", class: "10A", days: 3, status: "Contacted Parents" },
-    { id: 2, student: "Sarah Johnson", class: "11C", days: 2, status: "Needs Action" },
-    { id: 3, student: "Mike Wilson", class: "9B", days: 4, status: "Meeting Scheduled" },
-  ];
 
   if (isLoading) {
     return (
@@ -64,12 +56,38 @@ export const TeacherDashboard = () => {
     <div className="space-y-6 animate-fade-in">
       <StatsSection stats={stats} />
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Attendance by Time Slot</CardTitle>
+            <CardDescription>
+              Distribution of attendance across different time slots
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AttendanceChart attendanceBySlot={attendanceBySlot} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Recent Attendance Records</CardTitle>
+            <CardDescription>
+              Overview of the most recent attendance records
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AttendanceSection recentAttendanceData={recentAttendanceData} />
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="attendance" className="space-y-4">
         <div className="flex justify-between items-center">
           <TabsList>
             <TabsTrigger value="attendance" className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
-              <span>Recent Attendance</span>
+              <span>Attendance Details</span>
             </TabsTrigger>
             <TabsTrigger value="marks" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
@@ -81,9 +99,9 @@ export const TeacherDashboard = () => {
         <TabsContent value="attendance" className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Recent Attendance Records</CardTitle>
+              <CardTitle>Detailed Attendance Records</CardTitle>
               <CardDescription>
-                Overview of the most recent attendance records
+                Complete overview of attendance records
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -106,11 +124,6 @@ export const TeacherDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <TasksSection tasks={upcomingTasks} />
-        <AbsenceAlertsSection alerts={absenceAlerts} />
-      </div>
     </div>
   );
 };

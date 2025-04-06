@@ -41,6 +41,8 @@ export const StudentCsvUpload = ({ onSuccess, onCancel }: StudentCsvUploadProps)
           const batchIndex = header.indexOf('batch');
           const classIndex = header.indexOf('class_id');
           const boardIndex = header.indexOf('board');
+          const emailIndex = header.indexOf('email');
+          const passwordIndex = header.indexOf('password');
           
           // Validate required columns
           if (nameIndex === -1 || batchIndex === -1 || boardIndex === -1) {
@@ -51,17 +53,20 @@ export const StudentCsvUpload = ({ onSuccess, onCancel }: StudentCsvUploadProps)
           
           // Process data rows
           const students = [];
+          const authPromises = [];
+          
           for (let i = 1; i < rows.length; i++) {
             const columns = rows[i].split(',').map(column => column.trim());
             
             // Skip empty rows
-            if (columns.length < header.length) continue;
+            if (columns.length < Math.max(nameIndex, batchIndex, boardIndex) + 1) continue;
             
             const student = {
               name: columns[nameIndex],
               batch: columns[batchIndex],
               class_id: classIndex !== -1 ? columns[classIndex] : null,
-              board: columns[boardIndex]
+              board: columns[boardIndex],
+              email: emailIndex !== -1 ? columns[emailIndex] : null
             };
             
             // Validate required fields
@@ -69,7 +74,51 @@ export const StudentCsvUpload = ({ onSuccess, onCancel }: StudentCsvUploadProps)
               continue;
             }
             
-            students.push(student);
+            // If email and password are provided, create auth user
+            if (emailIndex !== -1 && passwordIndex !== -1 && columns[emailIndex] && columns[passwordIndex]) {
+              const email = columns[emailIndex];
+              const password = columns[passwordIndex];
+              
+              // Register user in auth
+              const authPromise = supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                  data: {
+                    name: student.name,
+                    role: "student",
+                  },
+                },
+              }).then(({ data, error }) => {
+                if (error) {
+                  console.error("Error registering student:", error);
+                  return null;
+                }
+                
+                // Add user ID to student object
+                if (data.user) {
+                  student.id = data.user.id;
+                  return student;
+                }
+                return null;
+              });
+              
+              authPromises.push(authPromise);
+            } else {
+              // No auth data, just add student to array
+              students.push(student);
+            }
+          }
+          
+          // Wait for all auth promises to resolve
+          if (authPromises.length > 0) {
+            const authResults = await Promise.all(authPromises);
+            
+            // Filter out nulls (failed registrations)
+            const validAuthStudents = authResults.filter(student => student !== null);
+            
+            // Combine with regular students
+            students.push(...validAuthStudents);
           }
           
           if (students.length === 0) {
@@ -105,7 +154,7 @@ export const StudentCsvUpload = ({ onSuccess, onCancel }: StudentCsvUploadProps)
   
   // Function to download sample CSV template
   const downloadSampleCsv = () => {
-    const sampleContent = "name,batch,class_id,board\nJohn Doe,2025,10A,CBSE\nJane Smith,2025,10B,ICSE";
+    const sampleContent = "name,batch,class_id,board,email,password\nJohn Doe,2025,10A,CBSE,john@example.com,password123\nJane Smith,2025,10B,ICSE,jane@example.com,password456";
     const blob = new Blob([sampleContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -129,7 +178,7 @@ export const StudentCsvUpload = ({ onSuccess, onCancel }: StudentCsvUploadProps)
             <InfoIcon className="h-4 w-4" />
             <AlertTitle>CSV Format</AlertTitle>
             <AlertDescription>
-              Your CSV file should contain columns for name, batch, class_id (optional), and board.
+              Your CSV file should contain columns for name, batch, class_id (optional), board, email (optional), and password (optional).
               <Button 
                 variant="link" 
                 className="p-0 h-auto text-primary" 

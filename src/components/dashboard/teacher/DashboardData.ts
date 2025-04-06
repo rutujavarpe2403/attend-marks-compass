@@ -41,13 +41,40 @@ export const fetchDashboardData = async () => {
     let totalAttendanceRecords = 0;
     let presentRecords = 0;
     
+    // Track attendance by slot
+    const attendanceBySlot = {
+      morning: { present: 0, absent: 0 },
+      afternoon: { present: 0, absent: 0 },
+      evening: { present: 0, absent: 0 },
+    };
+    
     if (attendanceData && attendanceData.length > 0) {
       totalAttendanceRecords = attendanceData.length * 3; // morning, afternoon, evening slots
       
       attendanceData.forEach((record: any) => {
-        if (record.morning) presentRecords++;
-        if (record.afternoon) presentRecords++;
-        if (record.evening) presentRecords++;
+        // Morning slot
+        if (record.morning) {
+          presentRecords++;
+          attendanceBySlot.morning.present++;
+        } else {
+          attendanceBySlot.morning.absent++;
+        }
+        
+        // Afternoon slot
+        if (record.afternoon) {
+          presentRecords++;
+          attendanceBySlot.afternoon.present++;
+        } else {
+          attendanceBySlot.afternoon.absent++;
+        }
+        
+        // Evening slot
+        if (record.evening) {
+          presentRecords++;
+          attendanceBySlot.evening.present++;
+        } else {
+          attendanceBySlot.evening.absent++;
+        }
       });
     }
     
@@ -71,47 +98,32 @@ export const fetchDashboardData = async () => {
     let recentAttendanceData: AttendanceRecord[] = [];
     
     if (attendanceData && attendanceData.length > 0) {
-      const attendanceByDate: Record<string, Record<string, {present: number, absent: number, total: number}>> = {};
+      // Join with students data to get names
+      const { data: studentsWithDetails } = await supabase
+        .from('students')
+        .select('id, name, class_id');
       
-      attendanceData.forEach((record: any) => {
-        const date = record.date;
-        const classId = "Class"; // In a real app, we'd join with student data to get class
-        
-        if (!attendanceByDate[date]) {
-          attendanceByDate[date] = {};
-        }
-        
-        if (!attendanceByDate[date][classId]) {
-          attendanceByDate[date][classId] = {
-            present: 0,
-            absent: 0,
-            total: 0
-          };
-        }
-        
-        // Count morning, afternoon, evening separately
-        attendanceByDate[date][classId].total += 3; // 3 sessions per day
-        if (record.morning) attendanceByDate[date][classId].present += 1;
-        else attendanceByDate[date][classId].absent += 1;
-        
-        if (record.afternoon) attendanceByDate[date][classId].present += 1;
-        else attendanceByDate[date][classId].absent += 1;
-        
-        if (record.evening) attendanceByDate[date][classId].present += 1;
-        else attendanceByDate[date][classId].absent += 1;
-      });
-      
-      // Convert to array format for table
-      Object.entries(attendanceByDate).slice(0, 5).forEach(([date, classes]) => {
-        Object.entries(classes).forEach(([classId, data]) => {
-          recentAttendanceData.push({
-            class: classId,
-            date,
-            present: data.present,
-            absent: data.absent,
-            rate: Math.round((data.present / data.total) * 100)
-          });
+      const studentMap = new Map();
+      if (studentsWithDetails) {
+        studentsWithDetails.forEach((student: any) => {
+          studentMap.set(student.id, { name: student.name, class: student.class_id });
         });
+      }
+      
+      // Transform attendance data
+      recentAttendanceData = attendanceData.slice(0, 10).map((record: any) => {
+        const student = studentMap.get(record.student_id);
+        const presentCount = (record.morning ? 1 : 0) + (record.afternoon ? 1 : 0) + (record.evening ? 1 : 0);
+        const totalCount = 3; // morning, afternoon, evening
+        
+        return {
+          studentName: student?.name || 'Unknown',
+          class: student?.class || 'Unknown',
+          date: record.date,
+          present: presentCount,
+          absent: totalCount - presentCount,
+          rate: Math.round((presentCount / totalCount) * 100)
+        };
       });
       
       recentAttendanceData = recentAttendanceData.sort(
@@ -164,7 +176,12 @@ export const fetchDashboardData = async () => {
       })).slice(0, 5);
     }
     
-    return { stats, recentAttendanceData, recentMarksData };
+    return { 
+      stats, 
+      recentAttendanceData, 
+      recentMarksData,
+      attendanceBySlot
+    };
     
   } catch (error) {
     console.error("Error fetching dashboard data:", error);
