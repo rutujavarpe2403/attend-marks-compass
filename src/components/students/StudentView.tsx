@@ -21,6 +21,7 @@ interface StudentDetails {
   class_id: string | null;
   board: string;
   email?: string;
+  created_at?: string; // Added created_at property to fix TypeScript error
 }
 
 interface AttendanceSummary {

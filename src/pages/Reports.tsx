@@ -11,6 +11,15 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
 
+// Define proper interface for attendance records
+interface AttendanceRecord {
+  date: string;
+  morning?: boolean;
+  afternoon?: boolean;
+  evening?: boolean;
+  [key: string]: any;
+}
+
 const Reports = () => {
   const { profile } = useAuth();
   const [reportType, setReportType] = useState("attendance");
@@ -69,7 +78,7 @@ const Reports = () => {
         let totalSessions = 0;
         
         // Aggregate attendance by date
-        const byDate = data.reduce((acc, record) => {
+        const byDate = (data as AttendanceRecord[]).reduce((acc, record) => {
           const date = record.date;
           
           if (!acc[date]) {
