@@ -1,4 +1,5 @@
 
+import { classes, boards, examTypes, subjects } from "./MarksContextData";
 import {
   Select,
   SelectContent,
@@ -20,11 +21,6 @@ export const MarksFilterBar = ({
   selectedExamType,
   selectedSubject,
 }: MarksFilterBarProps) => {
-  const classes = Array.from({ length: 12 }, (_, i) => `${i + 1}`);
-  const boards = ["CBSE", "ICSE", "State Board"];
-  const examTypes = ["Midterm", "Final", "Quiz", "Assignment"];
-  const subjects = ["Mathematics", "Science", "English", "History", "Geography"];
-
   // This is just a display component - the actual state is managed in MarksTable
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
