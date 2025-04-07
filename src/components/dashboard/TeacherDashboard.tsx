@@ -15,7 +15,6 @@ export const TeacherDashboard = () => {
     totalStudents: 0,
     attendanceRate: 0,
     averageGrade: 0,
-    pendingReports: 5, // Default value for demo
   });
   const [recentAttendanceData, setRecentAttendanceData] = useState<AttendanceRecord[]>([]);
   const [recentMarksData, setRecentMarksData] = useState<MarkRecord[]>([]);
