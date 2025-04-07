@@ -1,5 +1,5 @@
 
-import { Users, CheckCircle, BookOpen, FileText } from "lucide-react";
+import { Users, CheckCircle, BookOpen } from "lucide-react";
 import { StatsCard } from "@/components/common/StatsCard";
 
 interface StatsSectionProps {
@@ -7,13 +7,12 @@ interface StatsSectionProps {
     totalStudents: number;
     attendanceRate: number;
     averageGrade: number;
-    pendingReports: number;
   };
 }
 
 export const StatsSection = ({ stats }: StatsSectionProps) => {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       <StatsCard
         title="Total Students"
         value={String(stats.totalStudents)}
@@ -34,13 +33,6 @@ export const StatsSection = ({ stats }: StatsSectionProps) => {
         icon={<BookOpen className="h-4 w-4 text-muted-foreground" />}
         trend="+3%"
         trendDirection="up"
-      />
-      <StatsCard
-        title="Pending Reports"
-        value={String(stats.pendingReports)}
-        icon={<FileText className="h-4 w-4 text-muted-foreground" />}
-        trend="-2"
-        trendDirection="down"
       />
     </div>
   );

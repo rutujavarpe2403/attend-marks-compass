@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { processCsvFile, saveStudentsToDatabase } from "../utils/csvUtils";
 import { CsvFormatInfo } from "./CsvFormatInfo";
+import { Loader2 } from "lucide-react";
 
 interface CsvUploadFormProps {
   onSuccess: () => void;
@@ -72,7 +73,14 @@ export const CsvUploadForm = ({ onSuccess, onCancel }: CsvUploadFormProps) => {
       
       <div className="flex gap-2 pt-4">
         <Button type="submit" disabled={isUploading}>
-          {isUploading ? "Uploading..." : "Upload CSV"}
+          {isUploading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Uploading...
+            </>
+          ) : (
+            "Upload CSV"
+          )}
         </Button>
         <Button type="button" variant="outline" onClick={onCancel} disabled={isUploading}>
           Cancel

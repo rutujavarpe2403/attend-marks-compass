@@ -137,10 +137,10 @@ const Reports = () => {
     toast.success(`Downloaded ${reportType} report`);
   };
 
-  // Pie chart data for attendance summary
+  // Pie chart data for attendance summary - using lighter colors
   const pieChartData = [
-    { name: "Present", value: attendanceData.summary.present, color: "#10b981" },
-    { name: "Absent", value: attendanceData.summary.absent, color: "#ef4444" },
+    { name: "Present", value: attendanceData.summary.present, color: "#86efac" }, // light green
+    { name: "Absent", value: attendanceData.summary.absent, color: "#fca5a5" }, // light red
   ];
   
   // Bar chart data for attendance by date
@@ -280,8 +280,8 @@ const Reports = () => {
                         <YAxis />
                         <Tooltip />
                         <Legend />
-                        <Bar dataKey="present" name="Present" fill="#10b981" />
-                        <Bar dataKey="absent" name="Absent" fill="#ef4444" />
+                        <Bar dataKey="present" name="Present" fill="#86efac" /> {/* light green */}
+                        <Bar dataKey="absent" name="Absent" fill="#fca5a5" /> {/* light red */}
                       </BarChart>
                     </ResponsiveContainer>
                   </div>

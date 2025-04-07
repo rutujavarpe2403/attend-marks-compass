@@ -8,7 +8,6 @@ export interface DashboardStats {
   totalStudents: number;
   attendanceRate: number;
   averageGrade: number;
-  pendingReports: number;
 }
 
 export const fetchDashboardData = async () => {
@@ -90,8 +89,7 @@ export const fetchDashboardData = async () => {
     const stats: DashboardStats = {
       totalStudents,
       attendanceRate,
-      averageGrade,
-      pendingReports: 5 // Static demo value
+      averageGrade
     };
     
     // Process recent attendance data

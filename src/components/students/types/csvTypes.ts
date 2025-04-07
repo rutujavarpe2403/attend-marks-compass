@@ -5,5 +5,6 @@ export interface StudentCsvData {
   class_id: string | null;
   board: string;
   email: string | null;
+  password?: string | null;
   id?: string;
 }

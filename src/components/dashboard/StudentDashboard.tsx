@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/auth";
 import { supabase } from "@/integrations/supabase/client";
-import { AttendanceChart } from "./teacher/AttendanceChart";
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
+import { format, subDays } from "date-fns";
 
 export interface AttendanceSummary {
   present: number;
@@ -20,6 +21,8 @@ export interface AttendanceSummary {
 
 export interface StudentDashboardData {
   attendanceSummary: AttendanceSummary;
+  recentAttendance: any[];
+  recentMarks: any[];
 }
 
 export const StudentDashboard = () => {
@@ -36,7 +39,10 @@ export const StudentDashboard = () => {
         evening: { present: 0, absent: 0 },
       },
     },
+    recentAttendance: [],
+    recentMarks: []
   });
+  const [activeChartType, setActiveChartType] = useState<"bar" | "pie">("bar");
 
   useEffect(() => {
     const fetchStudentDashboardData = async () => {
@@ -62,12 +68,26 @@ export const StudentDashboard = () => {
         const { data: attendanceData, error: attendanceError } = await supabase
           .from('attendance')
           .select('*')
-          .eq('student_id', studentData.id);
+          .eq('student_id', studentData.id)
+          .order('date', { ascending: false })
+          .limit(10);
         
         if (attendanceError) {
           console.error("Error fetching attendance data:", attendanceError);
           setIsLoading(false);
           return;
+        }
+
+        // Fetch marks data
+        const { data: marksData, error: marksError } = await supabase
+          .from('marks')
+          .select('*')
+          .eq('student_id', studentData.id)
+          .order('created_at', { ascending: false })
+          .limit(10);
+          
+        if (marksError) {
+          console.error("Error fetching marks data:", marksError);
         }
 
         // Process attendance data
@@ -111,6 +131,18 @@ export const StudentDashboard = () => {
         const totalAbsent = totalSlots - totalPresent;
         const percentage = totalSlots > 0 ? Math.round((totalPresent / totalSlots) * 100) : 0;
         
+        // Format recent attendance for display
+        const recentAttendance = (attendanceData || []).map(record => {
+          const presentCount = (record.morning ? 1 : 0) + (record.afternoon ? 1 : 0) + (record.evening ? 1 : 0);
+          const totalCount = 3;
+          return {
+            date: format(new Date(record.date), 'MMM dd, yyyy'),
+            present: presentCount,
+            absent: totalCount - presentCount,
+            rate: Math.round((presentCount / totalCount) * 100)
+          };
+        });
+
         setDashboardData({
           attendanceSummary: {
             present: totalPresent,
@@ -118,6 +150,8 @@ export const StudentDashboard = () => {
             percentage,
             bySlot: attendanceBySlot,
           },
+          recentAttendance,
+          recentMarks: marksData || []
         });
         
       } catch (error) {
@@ -138,7 +172,57 @@ export const StudentDashboard = () => {
     );
   }
 
-  const { attendanceSummary } = dashboardData;
+  const { attendanceSummary, recentAttendance, recentMarks } = dashboardData;
+
+  // Chart data for attendance
+  const pieChartData = [
+    { name: 'Present', value: attendanceSummary.present, color: '#86efac' }, // light green
+    { name: 'Absent', value: attendanceSummary.absent, color: '#fca5a5' }, // light red
+  ];
+
+  // Bar chart data by slot
+  const barChartData = [
+    {
+      name: 'Morning',
+      Present: attendanceSummary.bySlot.morning.present,
+      Absent: attendanceSummary.bySlot.morning.absent,
+    },
+    {
+      name: 'Afternoon',
+      Present: attendanceSummary.bySlot.afternoon.present,
+      Absent: attendanceSummary.bySlot.afternoon.absent,
+    },
+    {
+      name: 'Evening',
+      Present: attendanceSummary.bySlot.evening.present,
+      Absent: attendanceSummary.bySlot.evening.absent,
+    },
+  ];
+
+  const AttendanceBarChart = () => (
+    <div className="h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie
+            data={pieChartData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            outerRadius={80}
+            fill="#8884d8"
+            dataKey="value"
+            label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          >
+            {pieChartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Legend />
+          <Tooltip />
+        </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -159,13 +243,49 @@ export const StudentDashboard = () => {
       
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>Attendance by Time Slot</CardTitle>
+          <CardTitle>Attendance Summary</CardTitle>
           <CardDescription>
-            Your attendance distribution across different time slots
+            Your attendance distribution
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <AttendanceChart attendanceBySlot={attendanceSummary.bySlot} />
+          <Tabs value={activeChartType} onValueChange={(value) => setActiveChartType(value as "bar" | "pie")} className="w-full">
+            <TabsList className="w-full mb-4">
+              <TabsTrigger value="bar" className="flex-1">Bar Chart</TabsTrigger>
+              <TabsTrigger value="pie" className="flex-1">Pie Chart</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="bar">
+              <div className="h-64">
+                <AttendanceBarChart />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="pie">
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
       
@@ -181,9 +301,38 @@ export const StudentDashboard = () => {
               <CardTitle>Recent Attendance</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-center text-muted-foreground py-8">
-                Attendance details will be shown here
-              </p>
+              {recentAttendance.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left py-2">Date</th>
+                        <th className="text-left py-2">Present</th>
+                        <th className="text-left py-2">Absent</th>
+                        <th className="text-left py-2">Rate</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentAttendance.map((attendance, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="py-2">{attendance.date}</td>
+                          <td className="py-2">{attendance.present}</td>
+                          <td className="py-2">{attendance.absent}</td>
+                          <td className="py-2">
+                            <span className={attendance.rate >= 90 ? 'text-green-600' : attendance.rate >= 75 ? 'text-yellow-600' : 'text-red-600'}>
+                              {attendance.rate}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No recent attendance records found
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -194,9 +343,34 @@ export const StudentDashboard = () => {
               <CardTitle>Recent Marks</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-center text-muted-foreground py-8">
-                Recent marks will be shown here
-              </p>
+              {recentMarks.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="text-left py-2">Subject</th>
+                        <th className="text-left py-2">Class</th>
+                        <th className="text-left py-2">Exam Type</th>
+                        <th className="text-left py-2">Marks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recentMarks.map((mark, i) => (
+                        <tr key={i} className="border-t">
+                          <td className="py-2">{mark.subject_id}</td>
+                          <td className="py-2">{mark.class_id}</td>
+                          <td className="py-2">{mark.exam_type}</td>
+                          <td className="py-2">{mark.marks}/100</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">
+                  No recent marks found
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

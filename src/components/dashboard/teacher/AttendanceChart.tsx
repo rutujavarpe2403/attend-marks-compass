@@ -36,15 +36,15 @@ export const AttendanceChart = ({ attendanceBySlot }: AttendanceChartProps) => {
     Present: {
       label: "Present",
       theme: {
-        light: "#4ade80", // light green
-        dark: "#22c55e",
+        light: "#86efac", // lighter green
+        dark: "#4ade80",
       },
     },
     Absent: {
       label: "Absent",
       theme: {
-        light: "#f87171", // light red
-        dark: "#ef4444",
+        light: "#fca5a5", // lighter red
+        dark: "#f87171",
       },
     },
   };
