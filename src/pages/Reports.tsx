@@ -10,6 +10,7 @@ import { Download, FileSpreadsheet, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 // Define proper interface for attendance records
 interface AttendanceRecord {
@@ -18,6 +19,13 @@ interface AttendanceRecord {
   afternoon?: boolean;
   evening?: boolean;
   [key: string]: any;
+}
+
+interface MarksRecord {
+  subject_id: string;
+  marks: number;
+  exam_type: string;
+  student_id?: string;
 }
 
 const Reports = () => {
@@ -29,10 +37,16 @@ const Reports = () => {
     summary: { present: 0, absent: 0, percentage: 0 },
     byDate: [] as { date: string; present: number; absent: number; total: number }[],
   });
+  const [marksData, setMarksData] = useState({
+    bySubject: [] as { subject: string; average: number }[],
+    byExamType: [] as { name: string; value: number; color: string }[]
+  });
   
   useEffect(() => {
     if (reportType === "attendance") {
       fetchAttendanceData(period);
+    } else if (reportType === "marks") {
+      fetchMarksData(period);
     }
   }, [reportType, period]);
 
@@ -128,12 +142,130 @@ const Reports = () => {
       setIsLoading(false);
     }
   };
+
+  const fetchMarksData = async (timePeriod: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Calculate date range based on selected period
+      const today = new Date();
+      let fromDate;
+      let toDate = today;
+      
+      switch (timePeriod) {
+        case "weekly":
+          fromDate = startOfWeek(today);
+          toDate = endOfWeek(today);
+          break;
+        case "monthly":
+          fromDate = startOfMonth(today);
+          toDate = endOfMonth(today);
+          break;
+        case "yearly":
+          fromDate = new Date(today.getFullYear(), 0, 1);
+          toDate = new Date(today.getFullYear(), 11, 31);
+          break;
+        default:
+          fromDate = subDays(today, 30);
+          break;
+      }
+      
+      const { data, error } = await supabase
+        .from("marks")
+        .select("*")
+        .gte("created_at", format(fromDate, "yyyy-MM-dd"))
+        .lte("created_at", format(toDate, "yyyy-MM-dd"));
+        
+      if (error) throw error;
+      
+      if (data) {
+        // Process marks data by subject
+        const subjectMap = {} as Record<string, { total: number; count: number }>;
+        const examTypeMap = {} as Record<string, number>;
+        
+        (data as MarksRecord[]).forEach(record => {
+          // Process by subject
+          if (!subjectMap[record.subject_id]) {
+            subjectMap[record.subject_id] = { total: 0, count: 0 };
+          }
+          subjectMap[record.subject_id].total += record.marks;
+          subjectMap[record.subject_id].count += 1;
+          
+          // Process by exam type
+          if (!examTypeMap[record.exam_type]) {
+            examTypeMap[record.exam_type] = 0;
+          }
+          examTypeMap[record.exam_type] += 1;
+        });
+        
+        // Convert to array format for charts
+        const bySubject = Object.entries(subjectMap).map(([subject, data]) => ({
+          subject,
+          average: Math.round(data.total / data.count),
+        }));
+        
+        // Define colors for pie chart
+        const colors = ['#8884d8', '#83a6ed', '#8dd1e1', '#82ca9d', '#a4de6c', '#d0ed57', '#ffc658'];
+        
+        const byExamType = Object.entries(examTypeMap).map(([name, value], index) => ({
+          name,
+          value,
+          color: colors[index % colors.length],
+        }));
+        
+        setMarksData({
+          bySubject,
+          byExamType,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching marks data:", error);
+      toast.error("Failed to fetch marks data");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleGenerateReport = () => {
+    if (reportType === "attendance") {
+      fetchAttendanceData(period);
+    } else if (reportType === "marks") {
+      fetchMarksData(period);
+    }
     toast.success(`Generated ${reportType} report for ${period} period`);
   };
 
   const handleDownloadReport = () => {
+    let csvContent = "";
+    let filename = "";
+    
+    if (reportType === "attendance") {
+      // Create attendance CSV
+      csvContent = "Date,Present,Absent,Total\n";
+      attendanceData.byDate.forEach(day => {
+        csvContent += `${day.date},${day.present},${day.absent},${day.total}\n`;
+      });
+      filename = `attendance_report_${period}_${format(new Date(), 'yyyyMMdd')}.csv`;
+    } else {
+      // Create marks CSV
+      csvContent = "Subject,Average Marks\n";
+      marksData.bySubject.forEach(subject => {
+        csvContent += `${subject.subject},${subject.average}\n`;
+      });
+      filename = `marks_report_${period}_${format(new Date(), 'yyyyMMdd')}.csv`;
+    }
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', filename);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
     toast.success(`Downloaded ${reportType} report`);
   };
 
@@ -288,9 +420,60 @@ const Reports = () => {
                 </TabsContent>
               </Tabs>
             ) : (
-              <div className="flex flex-col items-center justify-center h-64">
-                <p className="text-muted-foreground">Marks report is not yet available</p>
-              </div>
+              <Tabs defaultValue="bar" className="w-full">
+                <TabsList className="w-full mb-4">
+                  <TabsTrigger value="bar" className="flex-1">Bar Chart</TabsTrigger>
+                  <TabsTrigger value="pie" className="flex-1">Pie Chart</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="bar">
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={marksData.bySubject}
+                        margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="subject" />
+                        <YAxis domain={[0, 100]} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="average" name="Average Marks" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="pie">
+                  <div className="h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={marksData.byExamType}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {marksData.byExamType.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="text-center mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Distribution of exam types
+                      </p>
+                    </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             )}
 
             <div className="mt-6 flex justify-end">

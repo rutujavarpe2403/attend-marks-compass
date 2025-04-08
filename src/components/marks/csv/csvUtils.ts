@@ -121,3 +121,16 @@ export const processMarksUpload = async (
 
   return { successCount, errorCount };
 };
+
+export const generateSampleCsv = () => {
+  const headers = "student_name,marks";
+  const rows = [
+    "John Doe,85",
+    "Jane Smith,92",
+    "Michael Johnson,78",
+    "Emily Brown,95",
+    "David Wilson,87"
+  ];
+  
+  return [headers, ...rows].join("\n");
+};

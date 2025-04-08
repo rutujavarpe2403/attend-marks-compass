@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Upload, Download } from "lucide-react";
 import { useState } from "react";
 import { MarksCSVExample } from "../MarksCSVExample";
 
@@ -27,6 +27,19 @@ export const CsvFileUploader = ({
     }
   };
 
+  const downloadSampleCSV = () => {
+    const csvContent = "student_name,marks\nJohn Doe,85\nJane Smith,92\nAlex Johnson,78";
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'sample_marks.csv');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   return (
     <div className="space-y-4">
       <div>
@@ -38,13 +51,22 @@ export const CsvFileUploader = ({
           onChange={handleFileChange}
           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
         />
-        <button 
-          type="button" 
-          className="text-sm text-primary mt-1 underline"
-          onClick={() => setShowSample(!showSample)}
-        >
-          {showSample ? "Hide sample format" : "View sample CSV format"}
-        </button>
+        <div className="flex justify-between mt-1">
+          <button 
+            type="button" 
+            className="text-sm text-primary underline"
+            onClick={() => setShowSample(!showSample)}
+          >
+            {showSample ? "Hide sample format" : "View sample CSV format"}
+          </button>
+          <button
+            type="button"
+            className="text-sm text-primary underline flex items-center"
+            onClick={downloadSampleCSV}
+          >
+            <Download className="h-3 w-3 mr-1" /> Download sample CSV
+          </button>
+        </div>
       </div>
       
       {showSample && <MarksCSVExample />}

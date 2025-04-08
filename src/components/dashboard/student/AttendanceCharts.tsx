@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { AttendanceSummary, ChartData } from "./types";
 
 interface AttendanceChartsProps {
@@ -17,8 +17,7 @@ export const AttendanceCharts = ({ attendanceSummary }: AttendanceChartsProps) =
     { name: 'Absent', value: attendanceSummary.absent, color: '#fca5a5' }, // light red
   ];
 
-  // Bar chart data by slot - this is left as a reserved variable but we're currently
-  // using a pie chart for both views until a proper bar chart is implemented
+  // Bar chart data by slot
   const barChartData = [
     {
       name: 'Morning',
@@ -46,7 +45,20 @@ export const AttendanceCharts = ({ attendanceSummary }: AttendanceChartsProps) =
       
       <TabsContent value="bar">
         <div className="h-64">
-          <AttendancePieChart data={pieChartData} />
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={barChartData}
+              margin={{ top: 5, right: 20, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="Present" fill="#86efac" /> {/* light green */}
+              <Bar dataKey="Absent" fill="#fca5a5" /> {/* light red */}
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </TabsContent>
       

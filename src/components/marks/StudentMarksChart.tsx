@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   BarChart, 
   Bar, 
@@ -15,15 +16,12 @@ import {
   ResponsiveContainer 
 } from "recharts";
 import { MarksRecord } from "./TeacherMarksView";
-import { Button } from "@/components/ui/button";
 
 interface StudentMarksChartProps {
   marks: MarksRecord[];
 }
 
 export const StudentMarksChart = ({ marks }: StudentMarksChartProps) => {
-  const [chartType, setChartType] = useState<"bar" | "pie">("bar");
-  
   // Process data for bar chart - by subject
   const subjectData = marks.reduce((acc, mark) => {
     const existingSubject = acc.find(item => item.subject === mark.subject_id);
@@ -62,65 +60,63 @@ export const StudentMarksChart = ({ marks }: StudentMarksChartProps) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center space-x-2 mb-6">
-        <Button 
-          variant={chartType === "bar" ? "default" : "outline"} 
-          onClick={() => setChartType("bar")}
-        >
-          Bar Chart
-        </Button>
-        <Button 
-          variant={chartType === "pie" ? "default" : "outline"} 
-          onClick={() => setChartType("pie")}
-        >
-          Pie Chart
-        </Button>
-      </div>
-      
-      <Card>
-        <CardContent className="pt-6">
-          {chartType === "bar" ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={subjectData}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="subject" />
-                  <YAxis domain={[0, 100]} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="marks" name="Average Marks" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={examTypeData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+      <Tabs defaultValue="bar" className="w-full">
+        <TabsList className="w-full mb-4">
+          <TabsTrigger value="bar" className="flex-1">Bar Chart</TabsTrigger>
+          <TabsTrigger value="pie" className="flex-1">Pie Chart</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="bar">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={subjectData}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                   >
-                    {examTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="subject" />
+                    <YAxis domain={[0, 100]} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="marks" name="Average Marks" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="pie">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={examTypeData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={true}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                      label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {examTypeData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
