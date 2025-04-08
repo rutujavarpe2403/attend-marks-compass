@@ -11,6 +11,8 @@ import {
 import { Loader2 } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 import { MarksRecord } from "./TeacherMarksView";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StudentMarksChart } from "./StudentMarksChart";
 
 interface StudentMarksViewProps {
   profileId: string;
@@ -62,10 +64,21 @@ export const StudentMarksView = ({ profileId }: StudentMarksViewProps) => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : marks.length > 0 ? (
-          <DataTable 
-            columns={studentColumns} 
-            data={marks} 
-          />
+          <Tabs defaultValue="table" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="table">Table View</TabsTrigger>
+              <TabsTrigger value="charts">Charts</TabsTrigger>
+            </TabsList>
+            <TabsContent value="table">
+              <DataTable 
+                columns={studentColumns} 
+                data={marks} 
+              />
+            </TabsContent>
+            <TabsContent value="charts">
+              <StudentMarksChart marks={marks} />
+            </TabsContent>
+          </Tabs>
         ) : (
           <EmptyState 
             title="No marks available yet" 

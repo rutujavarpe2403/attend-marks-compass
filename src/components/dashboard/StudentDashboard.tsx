@@ -9,10 +9,14 @@ import { AttendanceSummaryCard } from "./student/AttendanceSummaryCard";
 import { AttendanceChartSection } from "./student/AttendanceChartSection";
 import { AttendanceTabContent } from "./student/TabContent";
 import { MarksTabContent } from "./student/TabContent";
+import { StudentPerformanceTab } from "../students/performance/StudentPerformanceTab";
+import { supabase } from "@/integrations/supabase/client";
+import { MarksData } from "../students/types/student";
 
 export const StudentDashboard = () => {
   const { profile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [marksData, setMarksData] = useState<MarksData[]>([]);
   const [dashboardData, setDashboardData] = useState<StudentDashboardData>({
     attendanceSummary: {
       present: 0,
@@ -36,6 +40,15 @@ export const StudentDashboard = () => {
         setIsLoading(true);
         const data = await fetchStudentDashboardData(profile.id);
         setDashboardData(data);
+        
+        // Fetch marks data for performance chart
+        const { data: marks, error } = await supabase
+          .from('marks')
+          .select('*')
+          .eq('student_id', profile.id);
+        
+        if (error) throw error;
+        setMarksData(marks || []);
       } catch (error) {
         console.error("Error loading student dashboard data:", error);
       } finally {
@@ -68,6 +81,7 @@ export const StudentDashboard = () => {
         <TabsList>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="marks">Marks</TabsTrigger>
+          <TabsTrigger value="performance">Performance</TabsTrigger>
         </TabsList>
         
         <TabsContent value="attendance" className="space-y-4">
@@ -76,6 +90,10 @@ export const StudentDashboard = () => {
         
         <TabsContent value="marks" className="space-y-4">
           <MarksTabContent recentMarks={recentMarks} />
+        </TabsContent>
+        
+        <TabsContent value="performance" className="space-y-4">
+          <StudentPerformanceTab marksData={marksData} />
         </TabsContent>
       </Tabs>
     </div>
