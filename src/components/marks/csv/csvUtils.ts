@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const parseCSV = async (csvFile: File): Promise<any[]> => {
@@ -56,7 +55,7 @@ export const processMarksUpload = async (
     try {
       // Find student ID from student name
       const { data: students, error: studentError } = await supabase
-        .from("profiles")
+        .from("students")
         .select("id")
         .ilike("name", `%${record.student_name}%`);
       
@@ -134,3 +133,4 @@ export const generateSampleCsv = () => {
   
   return [headers, ...rows].join("\n");
 };
+
