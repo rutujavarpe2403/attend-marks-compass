@@ -1,12 +1,22 @@
-
 import { useState } from "react";
 import { MarksFiltersContainer } from "./MarksFiltersContainer";
 import { MarksCsvUpload } from "./MarksCsvUpload";
 import { TeacherMarksView } from "./TeacherMarksView";
-import { ManualMarksEntry } from "./ManualMarksEntry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export const TeacherMarksContainer = () => {
+// Define the interface for uploaded records
+interface UploadedRecord {
+  student_name: string;
+  marks: number;
+  status: 'success' | 'error';
+  error?: string;
+}
+
+interface TeacherMarksContainerProps {
+  onRecordsUpdate?: (records: UploadedRecord[]) => void;
+}
+
+export const TeacherMarksContainer = ({ onRecordsUpdate }: TeacherMarksContainerProps) => {
   const [selectedClass, setSelectedClass] = useState<string>("all");
   const [selectedBoard, setSelectedBoard] = useState<string>("all");
   const [selectedExamType, setSelectedExamType] = useState<string>("all");
@@ -18,7 +28,6 @@ export const TeacherMarksContainer = () => {
         <TabsList className="mb-4">
           <TabsTrigger value="view">View Marks</TabsTrigger>
           <TabsTrigger value="csv">Upload CSV</TabsTrigger>
-          <TabsTrigger value="manual">Manual Entry</TabsTrigger>
         </TabsList>
         
         <TabsContent value="view">
@@ -42,11 +51,7 @@ export const TeacherMarksContainer = () => {
         </TabsContent>
         
         <TabsContent value="csv">
-          <MarksCsvUpload />
-        </TabsContent>
-        
-        <TabsContent value="manual">
-          <ManualMarksEntry />
+          <MarksCsvUpload onRecordsUpdate={onRecordsUpdate} />
         </TabsContent>
       </Tabs>
     </div>
