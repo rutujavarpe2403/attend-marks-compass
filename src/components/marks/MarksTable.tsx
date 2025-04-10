@@ -1,9 +1,20 @@
-
 import { useAuth } from "@/hooks/useAuth";
 import { TeacherMarksContainer } from "./TeacherMarksContainer";
 import { StudentMarksContainer } from "./StudentMarksContainer";
 
-export const MarksTable = () => {
+// Define the interface for uploaded records
+interface UploadedRecord {
+  student_name: string;
+  marks: number;
+  status: 'success' | 'error';
+  error?: string;
+}
+
+interface MarksTableProps {
+  onRecordsUpdate?: (records: UploadedRecord[]) => void;
+}
+
+export const MarksTable = ({ onRecordsUpdate }: MarksTableProps) => {
   const { profile } = useAuth();
   const isTeacher = profile?.role === "teacher";
   
@@ -17,7 +28,7 @@ export const MarksTable = () => {
       </div>
 
       {isTeacher ? (
-        <TeacherMarksContainer />
+        <TeacherMarksContainer onRecordsUpdate={onRecordsUpdate} />
       ) : (
         <StudentMarksContainer profileId={profile?.id || ''} />
       )}
