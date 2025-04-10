@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -14,6 +13,7 @@ import Attendance from "./pages/Attendance";
 import Marks from "./pages/Marks";
 import Reports from "./pages/Reports";
 import Students from "./pages/Students";
+import StudentDetails from "./pages/StudentDetails";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +53,7 @@ const AppRoutes = () => (
       <Route path="/marks" element={<Marks />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/students" element={<Students />} />
+      <Route path="/students/:studentId" element={<StudentDetails />} />
     </Route>
     
     {/* Catch-all route */}
